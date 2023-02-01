@@ -1,0 +1,69 @@
+#set the name of this workflow
+name: Docker Image deployment to Azure WebApp
+#set the commands to initiate this workflow
+on:
+  push:
+    branches: [ "main" ]
+#set environment variables
+env:
+  Azure_Repository: 'repository name'
+  Azure_Repository_URL: 'https://xxx.azurecr.io/'
+jobs:
+
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    #log workflow initiation
+    - name: Extract Version
+      id: version_step
+      run: |
+        echo "##[set-output name=version;]VERSION=${GITHUB_REF#$"refs/tags/v"}"
+        echo "##[set-output name=version_tag;]$GITHUB_REPOSITORY:${GITHUB_REF#$"refs/tags/v"}"
+        echo "##[set-output name=latest_tag;]$(date '+%Y-%m-%d')"
+    #print workflow to terminnal
+    - name: Print Version
+      run: |
+        echo ${{steps.version_step.outputs.version_tag}}
+        echo ${{steps.version_step.outputs.latest_tag}}
+    #login to the registry
+    - name: Log in to azure container registry
+      uses: docker/login-action@v1
+      with:
+        registry:  ${{env.Azure_Repository_URL}}
+        username: ${{ secrets.AzureAppService_ContainerUsername_03f891ff0707413a8330d6b72868ce80 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_cf9a63ae08c54dfdabda637f253805d6 }}
+    
+      #push built image the registry  
+    - name: Build and push container image to registry
+      uses: docker/build-push-action@v2
+      with:
+        push: true
+        tags: example.azurecr.io/${{env.Azure_Repository}}:${{ github.sha }}
+        file: ./Dockerfile
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+
+    steps:
+    #log workflow initiation
+    - name: Extract deployment Version
+      id: deployment_version_step
+      run: |
+        echo "##[set-output name=version;]VERSION=${GITHUB_REF#$"refs/tags/v"}"
+        echo "##[set-output name=version_tag;]$GITHUB_REPOSITORY:${GITHUB_REF#$"refs/tags/v"}"
+        echo "##[set-output name=latest_tag;]$(date '+%Y-%m-%d')"
+    #initiate deployment action  
+    - name: Deploy to Azure Web App
+      id: deploy-to-webapp
+      uses: azure/webapps-deploy@v2
+      with:
+        app-name: 'streaming-api'
+        slot-name: 'production'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_c928e0311eb9450894f91bc180fc20d6 }}
+        images: 'example.azurecr.io/stream-api:${{ github.sha }}'
