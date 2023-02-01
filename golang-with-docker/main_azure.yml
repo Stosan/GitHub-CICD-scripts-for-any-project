@@ -1,3 +1,4 @@
+
 #set the name of this workflow
 name: Docker Image deployment to Azure WebApp
 #set the commands to initiate this workflow
@@ -27,13 +28,14 @@ jobs:
       run: |
         echo ${{steps.version_step.outputs.version_tag}}
         echo ${{steps.version_step.outputs.latest_tag}}
+
     #login to the registry
-    - name: Log in to azure container registry
+    - name: Log in to IOTAFRICA container registry
       uses: docker/login-action@v1
       with:
         registry: ${{env.Azure_Repository_URL}}
-        username: ${{ secrets.AzureAppService_ContainerUsername_03f891ff0707413a8330d6b72868ce80 }}
-        password: ${{ secrets.AzureAppService_ContainerPassword_cf9a63ae08c54dfdabda637f253805d6 }}
+        username: ${{ secrets.AzureAppService_ContainerUsername_2b4953e894b64354bd3a6d22cbd0b145 }}
+        password: ${{ secrets.AzureAppService_ContainerPassword_af04b5e10e67483fb139472ede21bc23 }}
     
       #push built image the registry  
     - name: Build and push container image to registry
@@ -63,7 +65,8 @@ jobs:
       id: deploy-to-webapp
       uses: azure/webapps-deploy@v2
       with:
-        app-name: 'streaming-api'
+        app-name: 'iotafrica-smw-bus'
         slot-name: 'production'
-        publish-profile: ${{ secrets.AzureAppService_PublishProfile_c928e0311eb9450894f91bc180fc20d6 }}
-        images: 'example.azurecr.io/stream-api:${{ github.sha }}'
+        publish-profile: ${{ secrets.AzureAppService_PublishProfile_37226825ec004a208f02f349d378c726 }}
+        images: 'example.azurecr.io/smartwatermetering_bus:${{ github.sha }}'
+
